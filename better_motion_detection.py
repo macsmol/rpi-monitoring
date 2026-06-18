@@ -14,8 +14,11 @@ main = {"size": (1280, 720), "format": "RGB888"}
 lores = {"size": lsize, "format": "YUV420"}
 video_config = picam2.create_video_configuration(main, lores=lores)
 picam2.configure(video_config)
-encoder = H264Encoder(bitrate=1000000)
-picam2.start()
+
+duration = 2
+encoder = H264Encoder(bitrate=1000000, repeat=True)
+output = CircularOutput2(buffer_duration_ms=duration * 1000)
+picam2.start_recording(encoder, output)
 
 w, h = lsize
 prev = None
@@ -30,16 +33,16 @@ while True:
         mse = np.square(np.subtract(cur, prev)).mean()
         if mse > 7:
             if not encoding:
-                nowstruct = time.localtime(time.time())
-                timestr = time.strftime("%Y-%m-%d_%H%M%S%z", timr.localtime())
+                timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
 
-                encoder.output = PyavOutput(f"rec" + timestr + ".mp4")
-                picam2.start_encoder(encoder)
+                output.open_output(PyavOutput(f"rec_" + timestr + ".mp4"))
                 encoding = True
-                print("New Motion", mse)
+                print("New Recording started: mse", mse)
+
             ltime = time.time()
         else:
-            if encoding and time.time() - ltime > 2.0:
-                picam2.stop_encoder()
+            if encoding and time.time() - ltime > duration + 2.0:
+                output.close_output()
+                print("Recording stopped")
                 encoding = False
     prev = cur
