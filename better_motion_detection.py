@@ -31,9 +31,9 @@ while True:
         if mse > 7:
             if not encoding:
                 nowstruct = time.localtime(time.time())
-                time.strftime("%Y-%m-%d_%H%M%S%z", timr.localtime())
+                timestr = time.strftime("%Y-%m-%d_%H%M%S%z", timr.localtime())
 
-                encoder.output = PyavOutput(f"{int(time.time())}.mp4")
+                encoder.output = PyavOutput(f"rec" + timestr + ".mp4")
                 picam2.start_encoder(encoder)
                 encoding = True
                 print("New Motion", mse)
