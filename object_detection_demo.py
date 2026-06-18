@@ -50,6 +50,7 @@ def parse_detections(metadata: dict):
     last_detections = [
         Detection(box, category, score, metadata) for box, score, category in zip(boxes, scores, classes) if score > threshold
     ]
+    
     return last_detections
 
 
