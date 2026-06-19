@@ -1,12 +1,18 @@
 #!/usr/bin/python3
 
+import config
+
 import time
+import smtplib
 
 import numpy as np
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
+
+from email.mime.text import MIMEText
+
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -19,6 +25,8 @@ duration = 2
 encoder = H264Encoder(bitrate=1000000, repeat=True)
 output = CircularOutput2(buffer_duration_ms=duration * 1000)
 picam2.start_recording(encoder, output)
+
+smtp = smtplib.SMTP(config.server_url, config.server_port)
 
 w, h = lsize
 prev = None
@@ -45,4 +53,24 @@ while True:
                 output.close_output()
                 print("Recording stopped")
                 encoding = False
+
+                print("Sending email")
+
+                msg = MIMEText("Motion detected", "plain")
+                
+                msg['Subject'] = "Plain text email"
+                msg['From']    = config.send_from
+                msg['To']      = config.send_to
+                msg['Subject'] = "Camera alert"
+
+                print("starting tls...")
+                smtp.starttls()  # Secure the connection
+                print("logging in..")
+                smtp.login(config.send_from, config.password)
+                print("sending..")
+                smtp.sendmail(send_from, send_to, msg.as_string())
+
+                print("Sending email - Done")
     prev = cur
+
+smtp.close()

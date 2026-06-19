@@ -1,0 +1,5 @@
+-safely store email credentials
+-send binary data over email
+    -send such data encrypted
+Extras:
+-fallback email account?
