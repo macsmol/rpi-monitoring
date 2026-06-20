@@ -26,7 +26,9 @@ encoder = H264Encoder(bitrate=1000000, repeat=True)
 output = CircularOutput2(buffer_duration_ms=duration * 1000)
 picam2.start_recording(encoder, output)
 
-smtp = smtplib.SMTP(config.server_url, config.server_port)
+smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
+smtp.set_debuglevel(1)
+print("opening smtp - Done")
 
 w, h = lsize
 prev = None
@@ -54,21 +56,18 @@ while True:
                 print("Recording stopped")
                 encoding = False
 
-                print("Sending email")
 
-                msg = MIMEText("Motion detected", "plain")
+                msg = MIMEText("Motion detected", _charset="utf-8")
                 
-                msg['Subject'] = "Plain text email"
+                msg['Subject'] = "Camera"
                 msg['From']    = config.send_from
                 msg['To']      = config.send_to
-                msg['Subject'] = "Camera alert"
 
-                print("starting tls...")
-                smtp.starttls()  # Secure the connection
-                print("logging in..")
+                print("Logging in..")
                 smtp.login(config.send_from, config.password)
-                print("sending..")
-                smtp.sendmail(send_from, send_to, msg.as_string())
+                
+                print("Sending..")
+                smtp.sendmail(config.send_from, config.send_to, msg.as_string())
 
                 print("Sending email - Done")
     prev = cur
