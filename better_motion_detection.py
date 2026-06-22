@@ -12,8 +12,10 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
 
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email import encoders
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -58,7 +60,7 @@ while True:
                 filename = f"rec_{timestr}.mp4"
                 output.open_output(PyavOutput(filename))
                 encoding = True
-                logger.info("New Recording started: mse %s", mse)
+                logger.info("New Recording started: mse %s, file: %s", mse, filename)
 
             ltime = time.time()
         else:
@@ -68,7 +70,7 @@ while True:
                 encoding = False
 
                 msg = MIMEMultipart()
-                msg = attach.(MIMEText("Motion detected", _charset="utf-8"))
+                msg.attach(MIMEText("Motion detected", _charset="utf-8"))
                 
                 msg['Subject'] = f"Camera {timestr}"
                 msg['From']    = config.send_from
@@ -80,7 +82,7 @@ while True:
                     part.set_payload(file.read())
                 encoders.encode_base64(part)
                 part.add_header('Content-Disposition',
-                                'attachment; filename={}'.format(Path(filename).name))
+                                'attachment; filename={}'.format(filename))
                 msg.attach(part)
                 ####
 
