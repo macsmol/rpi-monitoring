@@ -2,6 +2,7 @@
 
 import config
 
+import logging
 import time
 import smtplib
 
@@ -12,7 +13,6 @@ from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
 
 from email.mime.text import MIMEText
-
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -26,9 +26,15 @@ encoder = H264Encoder(bitrate=1000000, repeat=True)
 output = CircularOutput2(buffer_duration_ms=duration * 1000)
 picam2.start_recording(encoder, output)
 
+FORMAT = "%(asctime)s %(name)s: %(message)s"
+logdatefmt = '%m%d %H:%M:%S'
+logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
+logger = logging.getLogger('mon')
+
+logger.info("opening smtp")
 smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
 smtp.set_debuglevel(1)
-print("opening smtp - Done")
+logger.info("opening smtp - Done")
 
 w, h = lsize
 prev = None
@@ -48,29 +54,30 @@ while True:
 
                 output.open_output(PyavOutput(f"rec_{timestr}.mp4"))
                 encoding = True
-                print("New Recording started: mse", mse)
+                logger.info("New Recording started: mse %s", mse)
 
             ltime = time.time()
         else:
             if encoding and time.time() - ltime > duration + 2.0:
                 output.close_output()
-                print("Recording stopped")
+                logger.info("Recording stopped")
                 encoding = False
 
 
                 msg = MIMEText("Motion detected", _charset="utf-8")
                 
-                msg['Subject'] = f"Camera alert {timestr}"
+                msg['Subject'] = f"Camera {timestr}"
                 msg['From']    = config.send_from
                 msg['To']      = config.send_to
 
-                print("Logging in..")
+                logger.info("Logging in..")
+                # fails on later attempts when it does not send helo but server has timed it out
                 smtp.login(config.send_from, config.password)
                 
-                print("Sending..")
+                logger.info("Sending..")
                 smtp.sendmail(config.send_from, config.send_to, msg.as_string())
 
-                print("Sending email - Done")
+                logger.info("Sending email - Done")
     prev = cur
 
 smtp.close()
