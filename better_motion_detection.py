@@ -34,18 +34,19 @@ w, h = lsize
 prev = None
 encoding = False
 ltime = 0
+timestr = None
 
 while True:
     cur = picam2.capture_array("lores")[:h, :w]
     if prev is not None:
-        # Measure pixels differences between current and
+        # Measure pixels difference between current and
         # previous frame
         mse = np.square(np.subtract(cur, prev)).mean()
         if mse > 7:
             if not encoding:
                 timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
 
-                output.open_output(PyavOutput(f"rec_" + timestr + ".mp4"))
+                output.open_output(PyavOutput(f"rec_{timestr}.mp4"))
                 encoding = True
                 print("New Recording started: mse", mse)
 
@@ -59,7 +60,7 @@ while True:
 
                 msg = MIMEText("Motion detected", _charset="utf-8")
                 
-                msg['Subject'] = "Camera"
+                msg['Subject'] = f"Camera alert {timestr}"
                 msg['From']    = config.send_from
                 msg['To']      = config.send_to
 

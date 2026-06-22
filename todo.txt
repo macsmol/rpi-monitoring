@@ -1,5 +1,6 @@
 -safely store email credentials
 -send binary data over email
-    -send such data encrypted
+    -truncate video to attachment size
+-send emails encrypted (most likely pgp)
 Extras:
 -fallback email account?
