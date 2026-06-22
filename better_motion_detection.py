@@ -12,6 +12,7 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
 
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 lsize = (320, 240)
@@ -40,7 +41,9 @@ w, h = lsize
 prev = None
 encoding = False
 ltime = 0
+
 timestr = None
+filename = None
 
 while True:
     cur = picam2.capture_array("lores")[:h, :w]
@@ -52,7 +55,8 @@ while True:
             if not encoding:
                 timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
 
-                output.open_output(PyavOutput(f"rec_{timestr}.mp4"))
+                filename = f"rec_{timestr}.mp4"
+                output.open_output(PyavOutput(filename))
                 encoding = True
                 logger.info("New Recording started: mse %s", mse)
 
@@ -63,12 +67,22 @@ while True:
                 logger.info("Recording stopped")
                 encoding = False
 
-
-                msg = MIMEText("Motion detected", _charset="utf-8")
+                msg = MIMEMultipart()
+                msg = attach.(MIMEText("Motion detected", _charset="utf-8"))
                 
                 msg['Subject'] = f"Camera {timestr}"
                 msg['From']    = config.send_from
                 msg['To']      = config.send_to
+
+                #### attach video recording
+                part = MIMEBase('application', "octet-stream")
+                with open(filename, 'rb') as file:
+                    part.set_payload(file.read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition',
+                                'attachment; filename={}'.format(Path(filename).name))
+                msg.attach(part)
+                ####
 
                 logger.info("Logging in..")
                 # fails on later attempts when it does not send helo but server has timed it out
