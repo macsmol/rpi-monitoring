@@ -14,6 +14,7 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
 
+from email.message import Message
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -30,9 +31,7 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
     plaintext_msg["Subject"] = email_subject
     plaintext_msg["From"]    = config.send_from
     plaintext_msg["To"]      = config.send_to
-
-    plaintext_msg.attach()
-
+    
     #### 1.1 message text
     msg_text = MIMEText(email_message, _charset="utf-8")
 
@@ -95,8 +94,6 @@ smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
 smtp.set_debuglevel(1)
 logger.info("opening smtp - Done")
 
-gpg = gnupg.GPG(gnupghome=DIR_GNUPG)
-
 w, h = lsize
 prev = None
 encoding = False
@@ -134,7 +131,7 @@ while True:
                     "Motion detected"
                 )
 
-                smtp.sendmail(config.send_from, config.send_to, msg.as_string())
+                smtp.sendmail(config.send_from, config.send_to, msg)
 
                 logger.info("Sending email - Done")
     prev = cur

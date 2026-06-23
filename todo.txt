@@ -3,7 +3,10 @@
 -tweak picamera no to not miss the first frames (on destination hardware)
 
 -safely store email credentials
--send emails encrypted (most likely pgp)
+
+Bugs:
+-sometimes file is not created/flushed at the moment when we start sending email
+-Finish GPG encryption (it returns some errors; investigate logs)
 
 Extras:
 -fallback email account?
