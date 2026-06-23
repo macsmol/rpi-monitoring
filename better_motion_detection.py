@@ -2,6 +2,8 @@
 
 import config
 
+import base64
+import gnupg
 import logging
 import time
 import smtplib
@@ -16,6 +18,60 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
+
+def get_encrypted_email_string(email_address_recipient, file_path_attachment, email_subject, email_message=""):
+    def get_gpg_cipher_text(string, recipient_email_address):
+        gpg = gnupg.GPG(gnupghome=config.gpg_home_dir)
+        encrypted_str = str(gpg.encrypt(string, recipient_email_address))
+        return encrypted_str
+
+    #### 1. plaintext message
+    plaintext_msg = MIMEMultipart()
+    plaintext_msg["Subject"] = email_subject
+    plaintext_msg["From"]    = config.send_from
+    plaintext_msg["To"]      = config.send_to
+
+    plaintext_msg.attach()
+
+    #### 1.1 message text
+    msg_text = MIMEText(email_message, _charset="utf-8")
+
+    #### 1.2 video recording attachment
+    msg_attachment = MIMEBase('application', "octet-stream")
+    with open(file_path_attachment, 'rb') as file:
+        msg_attachment.set_payload(file.read())
+    encoders.encode_base64(msg_attachment)
+    msg_attachment.add_header('Content-Disposition',
+                    f'attachment; filename={file_path_attachment}')
+
+    plaintext_msg.attach(msg_text)
+    plaintext_msg.attach(msg_attachment)
+
+
+    #### 2. pgp encrypt plaintext message
+    pgp_msg = MIMEBase(_maintype="multipart", _subtype="encrypted", protocol="application/pgp-encrypted")
+    pgp_msg["Subject"] = email_subject
+    pgp_msg["From"]    = config.send_from
+    pgp_msg["To"]      = config.send_to
+
+    #### 2.1 create a header that says PGP/MIME was used
+    pgp_msg_part1 = Message()
+    pgp_msg_part1.add_header(_name="Content-Type", _value="application/pgp-encrypted")
+    pgp_msg_part1.add_header(_name="Content-Description", _value="PGP/MIME version identification")
+    pgp_msg_part1.set_payload("Version: 1" + "\n")
+
+    #### 2.2 encrypt the whole content and dump to a string
+    pgp_msg_part2 = Message()
+    pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
+    pgp_msg_part2.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
+    pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
+    pgp_msg_part2.set_payload(get_gpg_cipher_text(plaintext_msg.as_string(), email_address_recipient))
+
+    pgp_msg.attach(pgp_msg_part1)
+    pgp_msg.attach(pgp_msg_part2)
+
+    return pgp_msg.as_string()
+
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -38,6 +94,8 @@ logger.info("opening smtp")
 smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
 smtp.set_debuglevel(1)
 logger.info("opening smtp - Done")
+
+gpg = gnupg.GPG(gnupghome=DIR_GNUPG)
 
 w, h = lsize
 prev = None
@@ -69,28 +127,13 @@ while True:
                 logger.info("Recording stopped")
                 encoding = False
 
-                msg = MIMEMultipart()
-                msg.attach(MIMEText("Motion detected", _charset="utf-8"))
-                
-                msg['Subject'] = f"Camera {timestr}"
-                msg['From']    = config.send_from
-                msg['To']      = config.send_to
+                msg = get_encrypted_email_string(
+                    config.send_to, 
+                    filename, 
+                    f"Camera {timestr}", 
+                    "Motion detected"
+                )
 
-                #### attach video recording
-                part = MIMEBase('application', "octet-stream")
-                with open(filename, 'rb') as file:
-                    part.set_payload(file.read())
-                encoders.encode_base64(part)
-                part.add_header('Content-Disposition',
-                                'attachment; filename={}'.format(filename))
-                msg.attach(part)
-                ####
-
-                logger.info("Logging in..")
-                # fails on later attempts when it does not send helo but server has timed it out
-                smtp.login(config.send_from, config.password)
-                
-                logger.info("Sending..")
                 smtp.sendmail(config.send_from, config.send_to, msg.as_string())
 
                 logger.info("Sending email - Done")
