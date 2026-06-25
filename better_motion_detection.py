@@ -20,10 +20,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
 
+
 def get_encrypted_email_string(email_address_recipient, file_path_attachment, email_subject, email_message=""):
     def get_gpg_cipher_text(string, recipient_email_address):
         gpg = gnupg.GPG(gnupghome=config.gpg_home_dir)
-        encrypted_str = str(gpg.encrypt(string, recipient_email_address))
+        encrypted_data = gpg.encrypt(string, recipient_email_address)
+        encrypted_str = str(encrypted_data)
         return encrypted_str
 
     #### 1. plaintext message
@@ -65,6 +67,38 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
     pgp_msg_part2.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
     pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
     pgp_msg_part2.set_payload(get_gpg_cipher_text(plaintext_msg.as_string(), email_address_recipient))
+
+    pgp_msg.attach(pgp_msg_part1)
+    pgp_msg.attach(pgp_msg_part2)
+
+    return pgp_msg.as_string()
+
+def get_encrypted_email_string2(email_address_recipient, file_path_attachment, email_subject, email_message=""):
+    
+    #### 2. pgp encrypt plaintext message
+    pgp_msg = MIMEBase(_maintype="multipart", _subtype="encrypted", protocol="application/pgp-encrypted")
+    pgp_msg["Subject"] = email_subject
+    pgp_msg["From"]    = config.send_from
+    pgp_msg["To"]      = config.send_to
+
+    #### 2.1 create a header that says PGP/MIME was used
+    pgp_msg_part1 = Message()
+    pgp_msg_part1.add_header(_name="Content-Type", _value="application/pgp-encrypted")
+    pgp_msg_part1.add_header(_name="Content-Description", _value="PGP/MIME version identification")
+    pgp_msg_part1.set_payload("Version: 1" + "\n")
+
+    #### 2.2 load encrypted message and dump to a string
+    encrypted_data = None
+    with open(file_path_attachment, 'rb') as file:
+        encrypted_data = file.read()
+    print(type(encrypted_data))
+    payload = base64.b64encode(encrypted_data)    
+    
+    pgp_msg_part2 = Message()
+    pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
+    pgp_msg_part2.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
+    pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
+    pgp_msg_part2.set_payload(payload, email_address_recipient)
 
     pgp_msg.attach(pgp_msg_part1)
     pgp_msg.attach(pgp_msg_part2)
@@ -124,9 +158,10 @@ while True:
                 logger.info("Recording stopped")
                 encoding = False
 
-                msg = get_encrypted_email_string(
-                    config.send_to, 
-                    filename, 
+                msg = get_encrypted_email_string2(
+                    config.send_to,
+                    "todo.txt.gpg",
+                    #filename, 
                     f"Camera {timestr}", 
                     "Motion detected"
                 )
