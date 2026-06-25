@@ -130,7 +130,7 @@ while True:
                     f"Camera {timestr}", 
                     "Motion detected"
                 )
-
+                smtp.login(config.send_from, config.password)
                 smtp.sendmail(config.send_from, config.send_to, msg)
 
                 logger.info("Sending email - Done")
