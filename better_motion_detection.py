@@ -98,7 +98,7 @@ def get_encrypted_email_string2(email_address_recipient, file_path_attachment, e
     pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
     pgp_msg_part2.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
     pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
-    pgp_msg_part2.set_payload(payload, email_address_recipient)
+    pgp_msg_part2.set_payload(payload)
 
     pgp_msg.attach(pgp_msg_part1)
     pgp_msg.attach(pgp_msg_part2)
