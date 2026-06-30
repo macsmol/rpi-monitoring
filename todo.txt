@@ -2,11 +2,13 @@
 -truncate video to max attachment size
 -tweak picamera no to not miss the first frames (on destination hardware)
 
--safely store email credentials
-
 Bugs:
 -sometimes file is not created/flushed at the moment when we start sending email
--Finish GPG encryption (it returns some errors; investigate logs)
+-GPG: fix encryption of actual payloads
 
 Extras:
 -fallback email account?
+Wont do:
+-GPG: fix Proton mail app not automatically-deciphering pgp-encrypted msgs; 
+Protonmail seems alter the incoming msg format. The mime headers in my protonmail inbox differ from the ones that left the python script.
+Result is that I see cryptogram as a string in my mailbox - rather than deciphered attachment as I was hoping.

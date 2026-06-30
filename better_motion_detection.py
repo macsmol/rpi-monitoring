@@ -76,7 +76,7 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
 def get_encrypted_email_string2(email_address_recipient, file_path_attachment, email_subject, email_message=""):
     
     #### 2. pgp encrypt plaintext message
-    pgp_msg = MIMEBase(_maintype="multipart", _subtype="encrypted", protocol="application/pgp-encrypted")
+    pgp_msg = MIMEBase(_maintype="multipart", _subtype="encrypted", protocol="application/pgp-encrypted", charset="utf-8")
     pgp_msg["Subject"] = email_subject
     pgp_msg["From"]    = config.send_from
     pgp_msg["To"]      = config.send_to
@@ -95,9 +95,12 @@ def get_encrypted_email_string2(email_address_recipient, file_path_attachment, e
     payload = base64.b64encode(encrypted_data)    
     
     pgp_msg_part2 = Message()
-    pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
+    pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc") 
     pgp_msg_part2.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
-    pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
+    #pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
+    pgp_msg_part2.add_header(_name="Content-Disposition", _value="attachment", filename="encrypted.asc")
+    
+    
     pgp_msg_part2.set_payload(payload)
 
     pgp_msg.attach(pgp_msg_part1)
@@ -160,12 +163,15 @@ while True:
 
                 msg = get_encrypted_email_string2(
                     config.send_to,
-                    "todo.txt.gpg",
-                    #filename, 
+                    #"todo.txt.gpg",   # succesfully decrypted in Thunderbird+OpenKeyChain on Android
+                    "testRec.mp4.gpg", # gives error when trying to decrypt on the above setup
+#                    filename, 
                     f"Camera {timestr}", 
                     "Motion detected"
                 )
+                logger.info("Logowanie...")
                 smtp.login(config.send_from, config.password)
+                logger.info("Wysylanie...")
                 smtp.sendmail(config.send_from, config.send_to, msg)
 
                 logger.info("Sending email - Done")

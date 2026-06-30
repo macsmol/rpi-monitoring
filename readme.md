@@ -17,3 +17,7 @@ gpg_home_dir="/path/to/dir/with/gpg"
 pip install python-gnupg
 ```
 or see the instructions how to do it at: https://gnupg.readthedocs.io/en/latest/
+
+Setting up gpg with email client on mobile; 
+TIP: protonmail seems to do something weird. The mime headers in my protonmail inbox differ from the ones that left the python script.
+https://support.mozilla.org/en-US/kb/openpgp-thunderbird-android-howto
