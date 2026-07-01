@@ -149,7 +149,7 @@ while True:
             if not encoding:
                 timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
 
-                filename = f"rec_{timestr}.mp4"
+                filename = f"videos/rec_{timestr}.mp4"
                 output.open_output(PyavOutput(filename))
                 encoding = True
                 logger.info("New Recording started: mse %s, file: %s", mse, filename)
