@@ -1,5 +1,5 @@
 # setup
-1. Next to main srcipt create a config.py file with the desired data
+1. Next to do_monitoring.py srcipt create a config.py file with the desired data
 ```
 send_from = "exampleAccount@foo.com"
 
