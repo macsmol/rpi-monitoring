@@ -2,11 +2,11 @@
 
 import config
 
-import base64
 import gnupg
 import logging
 import time
 import smtplib
+import sys
 
 from email.message import Message
 from email.mime.base import MIMEBase
@@ -14,12 +14,27 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
 
-
-
 def get_encrypted_email_string(email_address_recipient, file_path_attachment, email_subject, email_message=""):
     def get_gpg_cipher_text(string, recipient_email_address):
+        logger.info("gpg_home_dir '%s'" %config.gpg_home_dir)
+        logger.info("gpg_keyring_dir '%s'" %config.gpg_keyring_dir)
         gpg = gnupg.GPG(gnupghome=config.gpg_home_dir, keyring=config.gpg_keyring_dir)
+        
+        # This looked like a helpful error/troubleshoot message to the user but
+        # I could not ever get gpg.list_keys() to list anything.
+        # even when succesfully encrypting msg to user that is not listed.
+        # logger.info("listingg keys %s" %gpg.list_keys())
+        # if (recipient_email_address not in gpg.list_keys()):
+        #     logger.error("""Recipient email not found in gpg keyring.
+        #     Did you import the public key for that email?")
+        #     Does gpg_keyring_dir in config.py file point to the keyring file actually used by gpg?""")
+        #     sys.exit()
+        
         encrypted_data = gpg.encrypt(string, recipient_email_address, always_trust=True)
+        if (encrypted_data.ok != True):
+            print("Encryption to '%s' failed" %recipient_email_address)
+            print("Status is %s" %encrypted_data.status)
+            sys.exit(f"gpg error: {encrypted_data.status}")
         return str(encrypted_data)
     
     #### 1. plaintext message
@@ -86,8 +101,6 @@ logger.info("openingg smtp - Done")
 
 timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
 filename = "testdata/0703_1255.png"
-
-logger.info("Recordingg stopped")
 
 msg = get_encrypted_email_string(
     config.send_to,

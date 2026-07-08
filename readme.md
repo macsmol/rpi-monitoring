@@ -17,6 +17,9 @@ gpg_home_dir="/path/to/dir/with/gpg"
 # A path to file storing the keys - set this if getting error like
 # gnupg: potential problem: ERROR: add_keyblock_resource 33587201
 # gnupg: potential problem: ERROR: keydb_search 33554445
+# otherwise set to gpg_keyring_dir=None
+# Example below shows direct path to the file 
+# but path to containing folder seems to work too
 gpg_keyring_dir="c:\\Users\\ExampleWinUser\\.gnupg\\pubring.kbx"
 ```
 2. Install python wrapper for GnuPG.
