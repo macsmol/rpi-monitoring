@@ -3,8 +3,7 @@
 import config
 from format_mail import get_encrypted_email_string
 
-import base64
-import gnupg
+import asyncio
 import logging
 import time
 import smtplib
@@ -15,12 +14,22 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
 
-from email.message import Message
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email import encoders
 from time import sleep# workaround for pi cam not flushing in time - todo better
+
+async def send_mail(filename, timestr):
+    sleep(1) # workaround for rpi-cam not flushing in time
+    msg = get_encrypted_email_string(
+        config.send_to,
+        filename, 
+        f"Camera {timestr}", 
+        "Motion detected"
+    )
+    logger.info("Logging in...")
+    smtp.login(config.send_from, config.password)
+    logger.info("Sendingg email..")
+    smtp.sendmail(config.send_from, config.send_to, msg)
+    logger.info("Sendingg email - Done")
+
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -74,19 +83,9 @@ while True:
                 output.close_output()
                 logger.info("Recording stopped")
                 encoding = False
-                sleep(1) # workaround for rpi-cam not flushing in time
-                msg = get_encrypted_email_string(
-                    config.send_to,
-                    filename, 
-                    f"Camera {timestr}", 
-                    "Motion detected"
-                )
-                logger.info("Logging in...")
-                smtp.login(config.send_from, config.password)
-                logger.info("Sendingg email..")
-                smtp.sendmail(config.send_from, config.send_to, msg)
 
-                logger.info("Sendingg email - Done")
+                asyncio.run(send_mail(filename, timestr))
+               
     prev = cur
 
 smtp.close()
