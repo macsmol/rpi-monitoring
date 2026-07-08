@@ -13,6 +13,10 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
+from time import perf_counter
+
+
+logger = logging.getLogger(__name__)
 
 def get_encrypted_email_string(email_address_recipient, file_path_attachment, email_subject, email_message=""):
     def get_gpg_cipher_text(string, recipient_email_address):
@@ -29,8 +33,10 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
         #     Did you import the public key for that email?")
         #     Does gpg_keyring_dir in config.py file point to the keyring file actually used by gpg?""")
         #     sys.exit()
-        
+        before = perf_counter()
         encrypted_data = gpg.encrypt(string, recipient_email_address, always_trust=True)
+        after  = perf_counter()
+        print("gpg.encrypt() took: %s" %(after - before))
         if (encrypted_data.ok != True):
             print("Encryption to '%s' failed" %recipient_email_address)
             print("Status is %s" %encrypted_data.status)
@@ -75,7 +81,8 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
     pgp_msg_part1.add_header(_name="Content-Type", _value="application/pgp-encrypted")
     pgp_msg_part1.add_header(_name="Content-Description", _value="PGP/MIME version identification")
     pgp_msg_part1.set_payload("Version: 1" + "\n")
-
+    
+    logger.info("encrypting")
     #### 2.2 encrypt the whole content and dump to a string
     pgp_msg_part2 = Message()
     pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
@@ -86,33 +93,35 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
 
     pgp_msg.attach(pgp_msg_part1)
     pgp_msg.attach(pgp_msg_part2)
-
+    logger.info("encrypting-done-returing cryptogram")
     return pgp_msg.as_string()
 
-FORMAT = "%(asctime)s %(name)s: %(message)s"
-logdatefmt = '%m%d %H:%M:%S'
-logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
-logger = logging.getLogger('mon')
 
-logger.info("openingg smtp")
-smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
-smtp.set_debuglevel(1)
-logger.info("openingg smtp - Done")
+if __name__ == "main":
+    FORMAT = "%(asctime)s %(name)s: %(message)s"
+    logdatefmt = '%m%d %H:%M:%S'
+    logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
+    
 
-timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
-filename = "testdata/0703_1255.png"
+    logger.info("openingg smtp")
+    smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
+    smtp.set_debuglevel(1)
+    logger.info("openingg smtp - Done")
 
-msg = get_encrypted_email_string(
-    config.send_to,
-    filename, 
-    f"Camera {timestr}", 
-    "Motion detected"
-)
-logger.info("Loggingg in...")
-smtp.login(config.send_from, config.password)
-logger.info("Sendingg...")
-smtp.sendmail(config.send_from, config.send_to, msg)
+    timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
+    filename = "testdata/0703_1255.png"
 
-logger.info("Sendingg email - Done")
+    msg = get_encrypted_email_string(
+        config.send_to,
+        filename, 
+        f"Camera {timestr}", 
+        "Motion detected"
+    )
+    logger.info("Loggingg in...")
+    smtp.login(config.send_from, config.password)
+    logger.info("Sendingg...")
+    smtp.sendmail(config.send_from, config.send_to, msg)
 
-smtp.close()
+    logger.info("Sendingg email - Done")
+
+    smtp.close()

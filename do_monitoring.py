@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import config
+from format_mail import get_encrypted_email_string
 
 import base64
 import gnupg
@@ -19,61 +20,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
-
-def get_encrypted_email_string(email_address_recipient, file_path_attachment, email_subject, email_message=""):
-    def get_gpg_cipher_text(string, recipient_email_address):
-        gpg = gnupg.GPG(gnupghome=config.gpg_home_dir, keyring=config.gpg_keyring_dir)
-        encrypted_data = gpg.encrypt(string, recipient_email_address, always_trust=True)
-        return str(encrypted_data)
-    
-    #### 1. plaintext message
-    plaintext_msg = MIMEMultipart()
-    plaintext_msg["Subject"] = email_subject
-    plaintext_msg["From"]    = config.send_from
-    plaintext_msg["To"]      = config.send_to
-    
-    #### 1.1 message text
-    msg_text = MIMEText(email_message, _charset="utf-8")
-
-    #### 1.2 video recording attachment
-    msg_attachment = MIMEBase('application', "octet-stream")
-    with open(file_path_attachment, 'rb') as file:
-        file_content = file.read()
-        msg_attachment.set_payload(file_content)
-    encoders.encode_base64(msg_attachment)
-    
-    filename = file_path_attachment.split('/')[-1]
-    msg_attachment.add_header('Content-Disposition', f'attachment; filename={filename}')
-
-    plaintext_msg.attach(msg_text)
-    plaintext_msg.attach(msg_attachment)
-
-
-    #### 2. pgp encrypt plaintext message
-    pgp_msg = MIMEBase(_maintype="multipart", _subtype="encrypted", protocol="application/pgp-encrypted")
-    pgp_msg["Subject"] = email_subject
-    pgp_msg["From"]    = config.send_from
-    pgp_msg["To"]      = config.send_to
-
-    #### 2.1 create a header that says PGP/MIME was used
-    pgp_msg_part1 = Message()
-    pgp_msg_part1.add_header(_name="Content-Type", _value="application/pgp-encrypted")
-    pgp_msg_part1.add_header(_name="Content-Description", _value="PGP/MIME version identification")
-    pgp_msg_part1.set_payload("Version: 1" + "\n")
-
-    #### 2.2 encrypt the whole content and dump to a string
-    pgp_msg_part2 = Message()
-    pgp_msg_part2.add_header(_name="Content-Type", _value="application/octet-stream", name="encrypted.asc")
-    pgp_msg_part2.add_header(_name="Content-Description", _value="OpenPGP encrypted message")
-    pgp_msg_part2.add_header(_name="Content-Disposition", _value="inline", filename="encrypted.asc")
-    cipher_text = get_gpg_cipher_text(plaintext_msg.as_string(), email_address_recipient)
-    pgp_msg_part2.set_payload(cipher_text)
-
-    pgp_msg.attach(pgp_msg_part1)
-    pgp_msg.attach(pgp_msg_part2)
-
-    return pgp_msg.as_string()
-
+from time import sleep# workaround for pi cam not flushing in time - todo better
 
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -82,7 +29,7 @@ lores = {"size": lsize, "format": "YUV420"}
 video_config = picam2.create_video_configuration(main, lores=lores)
 picam2.configure(video_config)
 
-duration = 2
+duration = 4
 encoder = H264Encoder(bitrate=1000000, repeat=True)
 output = CircularOutput2(buffer_duration_ms=duration * 1000)
 picam2.start_recording(encoder, output)
@@ -94,7 +41,8 @@ logger = logging.getLogger('mon')
 
 logger.info("opening smtp")
 smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
-smtp.set_debuglevel(1)
+#generates huge lag because it prints whole content of email (megabytes)
+#smtp.set_debuglevel(1)
 logger.info("opening smtp - Done")
 
 w, h = lsize
@@ -126,19 +74,19 @@ while True:
                 output.close_output()
                 logger.info("Recording stopped")
                 encoding = False
-
+                sleep(1) # workaround for rpi-cam not flushing in time
                 msg = get_encrypted_email_string(
                     config.send_to,
                     filename, 
                     f"Camera {timestr}", 
                     "Motion detected"
                 )
-                logger.info("Logowanie...")
+                logger.info("Logging in...")
                 smtp.login(config.send_from, config.password)
-                logger.info("Wysylanie...")
+                logger.info("Sendingg email..")
                 smtp.sendmail(config.send_from, config.send_to, msg)
 
-                logger.info("Sending email - Done")
+                logger.info("Sendingg email - Done")
     prev = cur
 
 smtp.close()

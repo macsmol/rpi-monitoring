@@ -4,7 +4,6 @@
 
 Bugs:
 -sometimes file is not created/flushed at the moment when we start sending email
--GPG: fix encryption of actual payloads
 
 Extras:
 -fallback email account?
