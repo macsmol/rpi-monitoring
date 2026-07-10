@@ -16,8 +16,24 @@ from picamera2.outputs import CircularOutput2, PyavOutput
 
 from time import sleep# workaround for pi cam not flushing in time - todo better
 
-async def send_mail(filename, timestr):
-    sleep(1) # workaround for rpi-cam not flushing in time
+
+def create_conn():
+    logger.info("opening smtp")
+    smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
+    #generates huge lag because it prints whole content of email (megabytes)
+    #smtp.set_debuglevel(1)
+    logger.info("opening smtp - Done")
+    return smtp
+
+async def send_mail(filename, timestr, smtp_conn):
+    
+    def test_conn_open(conn):
+        try:
+            status = conn.noop()[0]
+        except:
+            status = -1
+        return True if status == 250 else False
+        
     msg = get_encrypted_email_string(
         config.send_to,
         filename, 
@@ -25,9 +41,12 @@ async def send_mail(filename, timestr):
         "Motion detected"
     )
     logger.info("Logging in...")
-    smtp.login(config.send_from, config.password)
+    if not test_conn_open(smtp_conn):
+        smtp_conn = create_conn()
+        
+    smtp_conn.login(config.send_from, config.password)
     logger.info("Sendingg email..")
-    smtp.sendmail(config.send_from, config.send_to, msg)
+    smtp_conn.sendmail(config.send_from, config.send_to, msg)
     logger.info("Sendingg email - Done")
 
 
@@ -48,11 +67,7 @@ logdatefmt = '%m%d %H:%M:%S'
 logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
 logger = logging.getLogger('mon')
 
-logger.info("opening smtp")
-smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
-#generates huge lag because it prints whole content of email (megabytes)
-#smtp.set_debuglevel(1)
-logger.info("opening smtp - Done")
+smtp = create_conn()
 
 w, h = lsize
 prev = None
@@ -84,7 +99,7 @@ while True:
                 logger.info("Recording stopped")
                 encoding = False
 
-                asyncio.run(send_mail(filename, timestr))
+                asyncio.run(send_mail(filename, timestr, smtp))
                
     prev = cur
 

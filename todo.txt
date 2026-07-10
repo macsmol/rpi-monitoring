@@ -1,4 +1,3 @@
--maintain the session (logs out after apparently 5 minutes)
 -truncate video to max attachment size
 -tweak picamera no to not miss the first frames (on destination hardware)
 
