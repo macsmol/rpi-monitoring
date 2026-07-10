@@ -97,7 +97,7 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
     return pgp_msg.as_string()
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     FORMAT = "%(asctime)s %(name)s: %(message)s"
     logdatefmt = '%m%d %H:%M:%S'
     logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
