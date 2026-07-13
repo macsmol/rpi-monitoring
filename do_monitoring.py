@@ -14,9 +14,6 @@ from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput2, PyavOutput
 
-from time import sleep# workaround for pi cam not flushing in time - todo better
-
-
 def create_conn():
     logger.info("opening smtp")
     smtp = smtplib.SMTP_SSL(config.server_url, config.server_port)
@@ -70,6 +67,8 @@ logdatefmt = '%m%d %H:%M:%S'
 logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
 logger = logging.getLogger('mon')
 
+logger.info("max_video_time %s", max_video_time)
+
 smtp = create_conn()
 
 w, h = lsize
@@ -90,7 +89,7 @@ while True:
         if mse > 7:
             if not encoding:
                 start_time = time.time()
-                timestr = time.strftime("%Y-%m-%d_%H%M%S%z", start_time)
+                timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
 
                 filename = f"videos/rec_{timestr}.mp4"
                 output.open_output(PyavOutput(filename))

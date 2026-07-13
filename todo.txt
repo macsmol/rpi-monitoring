@@ -1,8 +1,7 @@
--truncate video to max attachment size
 -tweak picamera no to not miss the first frames (on destination hardware)
 
 Bugs:
--sometimes file is not created/flushed at the moment when we start sending email
+-sometimes file is not created/flushed at the moment when we start sending email; waiting in a loop for file to be created does not help
 
 Extras:
 -fallback email account?

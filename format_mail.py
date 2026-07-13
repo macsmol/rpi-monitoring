@@ -13,7 +13,9 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
+from pathlib import Path
 from time import perf_counter
+from time import sleep
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,8 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
             sys.exit(f"gpg error: {encrypted_data.status}")
         return str(encrypted_data)
     
+    logger.info("Formatting mail..")
+    
     #### 1. plaintext message
     plaintext_msg = MIMEMultipart()
     plaintext_msg["Subject"] = email_subject
@@ -54,15 +58,25 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
 
     #### 1.2 video recording attachment
     msg_attachment = MIMEBase('application', "octet-stream")
+    
+    #this wait loop does not help
+    max_attempts = 30
+    attempts = 0
+    path = Path(file_path_attachment)
+    while not path.exists():
+        logger.info("no file")
+        sleep(0.5)
+        attempts += 1
+        if attempts >= max_attempts:
+            logger.info("max attempts reached")
+            break
+        
     with open(file_path_attachment, 'rb') as file:
         file_content = file.read()
         msg_attachment.set_payload(file_content)
     encoders.encode_base64(msg_attachment)
     
-    logger.info("file_path_attachment %s", file_path_attachment)
-    filename = file_path_attachment.split('/')[-1]
-    logger.info("filename %s", filename)
-
+    filename = file_path_attachment.split('/')[-1]   
     msg_attachment.add_header('Content-Disposition',
                     f'attachment; filename={filename}')
 
