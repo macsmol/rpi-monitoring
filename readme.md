@@ -21,6 +21,12 @@ gpg_home_dir="/path/to/dir/with/gpg"
 # Example below shows direct path to the file 
 # but path to containing folder seems to work too
 gpg_keyring_dir="c:\\Users\\ExampleWinUser\\.gnupg\\pubring.kbx"
+
+# Set this to attachment size limit used by email provider. This number is not strictly enforced by the script[^1] - actual videos attached in alerts may be bigger - so this number should be accordingly lower than the actual limit used by the email provider.
+max_attachment_bytes = 20 * 2**20
+
+
+# [^1] Rather than stopping video when max_attachment_bytes is actually reached there is a time limit set on the video - it is derived from max_attachment_size and the video bitrate)
 ```
 2. Install python wrapper for GnuPG.
 ```
