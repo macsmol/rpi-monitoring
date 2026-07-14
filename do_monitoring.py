@@ -54,20 +54,27 @@ lores = {"size": lsize, "format": "YUV420"}
 video_config = picam2.create_video_configuration(main, lores=lores)
 picam2.configure(video_config)
 
-duration = 4
+buffered_duration_s = 4
+min_video_duration_s = buffered_duration_s + 2
+
 bitrate = 1000000
+byterate = bitrate/8
 encoder = H264Encoder(bitrate=bitrate, repeat=True)
-output = CircularOutput2(buffer_duration_ms=duration * 1000)
+output = CircularOutput2(buffer_duration_ms=buffered_duration_s * 1000)
 picam2.start_recording(encoder, output)
 
-max_video_time = config.max_attachment_bytes/(bitrate/8)
+max_video_duration_s = config.max_attachment_bytes/byterate
+
+if max_video_duration_s < min_video_duration_s:
+    min_attachment_size = min_video_duration_s * byterate
+    logger.warning("config.max_attachment_bytes is too small. Overriding it to effectively: %s bytes", min_attachment_size)
 
 FORMAT = "%(asctime)s %(name)s: %(message)s"
 logdatefmt = '%m%d %H:%M:%S'
 logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
 logger = logging.getLogger('mon')
 
-logger.info("max_video_time %s", max_video_time)
+logger.info("max_video_duration_s %s", max_video_duration_s)
 
 smtp = create_conn()
 
@@ -96,7 +103,7 @@ while True:
                 encoding = True
                 logger.info("New Recording started: mse %s, file: %s", mse, filename)
             else:
-                if time.time() - start_time > max_video_time:
+                if time.time() - start_time > max_video_duration_s:
                     output.close_output()
                     logger.info("Recording stopped - too long")
                     encoding = False
@@ -104,7 +111,7 @@ while True:
 
             ltime = time.time()
         else:
-            if encoding and time.time() - ltime > duration + 2.0:
+            if encoding and time.time() - ltime > min_video_duration_s:
                 output.close_output()
                 logger.info("Recording stopped")
                 encoding = False
