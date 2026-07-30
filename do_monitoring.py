@@ -89,12 +89,20 @@ start_time = None
 timestr = None
 filename = None
 
+last_log_time = time.time()
+alive_log_period = 10*60
+
 while True:
     cur = picam2.capture_array("lores")[:h, :w]
     if prev is not None:
         # Measure pixels difference between current and
         # previous frame
         mse = np.square(np.subtract(cur, prev)).mean()
+        curr_time = time.time()
+
+        if curr_time - last_log_time > alive_log_period:
+            logger.info("Alive")
+            last_log_time = curr_time
 
         if mse > threshold_mse:
             if not encoding:
