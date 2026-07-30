@@ -22,8 +22,6 @@ logger = logging.getLogger(__name__)
 
 def get_encrypted_email_string(email_address_recipient, file_path_attachment, email_subject, email_message=""):
     def get_gpg_cipher_text(string, recipient_email_address):
-        logger.info("gpg_home_dir '%s'" %config.gpg_home_dir)
-        logger.info("gpg_keyring_dir '%s'" %config.gpg_keyring_dir)
         gpg = gnupg.GPG(gnupghome=config.gpg_home_dir, keyring=config.gpg_keyring_dir)
         
         # This looked like a helpful error/troubleshoot message to the user but

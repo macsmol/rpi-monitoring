@@ -64,14 +64,23 @@ max_video_time = config.max_attachment_bytes/(bitrate/8)
 
 FORMAT = "%(asctime)s %(name)s: %(message)s"
 logdatefmt = '%m%d %H:%M:%S'
-logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
+logging.basicConfig(filename="monitoring.log", level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
 logger = logging.getLogger('mon')
 
 logger.info("max_video_time %s", max_video_time)
 
+logger.info("gpg_home_dir '%s'" %config.gpg_home_dir)
+logger.info("gpg_keyring_dir '%s'" %config.gpg_keyring_dir)
+
 smtp = create_conn()
 
 w, h = lsize
+# 7 - many false positives
+# 10 - hard to trigger
+# 14  -  hard to trigger
+# 20 - hard to trigger
+threshold_mse = 8
+
 prev = None
 encoding = False
 ltime = 0
@@ -86,7 +95,8 @@ while True:
         # Measure pixels difference between current and
         # previous frame
         mse = np.square(np.subtract(cur, prev)).mean()
-        if mse > 7:
+
+        if mse > threshold_mse:
             if not encoding:
                 start_time = time.time()
                 timestr = time.strftime("%Y-%m-%d_%H%M%S%z")
@@ -104,7 +114,9 @@ while True:
 
             ltime = time.time()
         else:
-            if encoding and time.time() - ltime > duration + 2.0:
+            # WARNING: values lower than 3 may cause file write fails 
+            # see https://github.com/raspberrypi/picamera2/issues/1403
+            if encoding and time.time() - ltime > duration + 3.0:
                 output.close_output()
                 logger.info("Recording stopped")
                 encoding = False
