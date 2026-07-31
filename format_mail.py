@@ -44,7 +44,7 @@ def get_encrypted_email_string(email_address_recipient, file_path_attachment, em
         return str(encrypted_data)
     
     logger.info("Formatting mail..")
-    
+    print(1/0)
     #### 1. plaintext message
     plaintext_msg = MIMEMultipart()
     plaintext_msg["Subject"] = email_subject

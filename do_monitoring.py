@@ -2,7 +2,7 @@
 
 import config
 from format_mail import get_encrypted_email_string
-import StreamToLogger
+from StreamToLogger import StreamToLogger
 
 import asyncio
 import logging
@@ -105,10 +105,8 @@ while True:
         mse = np.square(np.subtract(cur, prev)).mean()
         curr_time = time.time()
 
-        if curr_time - last_log_time > 15:
-        # if curr_time - last_log_time > alive_log_period:
+        if curr_time - last_log_time > alive_log_period:
             logger.info("Alive")
-            print(1/0)
             last_log_time = curr_time
 
         if mse > threshold_mse:
