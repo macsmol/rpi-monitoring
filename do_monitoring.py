@@ -2,11 +2,13 @@
 
 import config
 from format_mail import get_encrypted_email_string
+import StreamToLogger
 
 import asyncio
 import logging
 import time
 import smtplib
+import sys
 
 import numpy as np
 
@@ -67,6 +69,9 @@ logdatefmt = '%m%d %H:%M:%S'
 logging.basicConfig(filename="monitoring.log", level=logging.INFO, format=FORMAT, datefmt=logdatefmt)
 logger = logging.getLogger('mon')
 
+sys.stdout = StreamToLogger(logger, logging.INFO)
+sys.stderr = StreamToLogger(logger, logging.ERROR)
+
 logger.info("max_video_time %s", max_video_time)
 
 logger.info("gpg_home_dir '%s'" %config.gpg_home_dir)
@@ -100,8 +105,10 @@ while True:
         mse = np.square(np.subtract(cur, prev)).mean()
         curr_time = time.time()
 
-        if curr_time - last_log_time > alive_log_period:
+        if curr_time - last_log_time > 15:
+        # if curr_time - last_log_time > alive_log_period:
             logger.info("Alive")
+            print(1/0)
             last_log_time = curr_time
 
         if mse > threshold_mse:
